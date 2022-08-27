@@ -1,1 +1,1 @@
-# new-music-notifier
+# music-notifier
