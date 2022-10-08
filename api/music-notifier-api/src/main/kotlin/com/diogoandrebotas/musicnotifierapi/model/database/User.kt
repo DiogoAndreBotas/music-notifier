@@ -1,4 +1,4 @@
-package com.diogoandrebotas.musicnotifierapi.model
+package com.diogoandrebotas.musicnotifierapi.model.database
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document

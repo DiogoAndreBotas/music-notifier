@@ -1,4 +1,4 @@
-package com.diogoandrebotas.musicnotifierapi.model
+package com.diogoandrebotas.musicnotifierapi.model.http
 
 data class UserRequestBody (
     val email: String,

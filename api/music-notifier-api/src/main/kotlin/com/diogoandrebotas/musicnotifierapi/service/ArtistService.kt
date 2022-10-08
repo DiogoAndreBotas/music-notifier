@@ -1,7 +1,7 @@
 package com.diogoandrebotas.musicnotifierapi.service
 
-import com.diogoandrebotas.musicnotifierapi.model.Artist
-import com.diogoandrebotas.musicnotifierapi.model.User
+import com.diogoandrebotas.musicnotifierapi.model.database.Artist
+import com.diogoandrebotas.musicnotifierapi.model.database.User
 import com.diogoandrebotas.musicnotifierapi.repository.ArtistRepository
 import org.springframework.stereotype.Service
 

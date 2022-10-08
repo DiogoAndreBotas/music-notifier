@@ -15,8 +15,7 @@ class ArtistController(val artistService: ArtistService, val userService: UserSe
         = artistService.addOrUpdateArtist(artistName, userService.getLoggedInUser())
 
     @DeleteMapping("/unsubscribe/artist/{artistName}")
-    fun unsubscribeFromArtist(@PathVariable artistName: String) {
-        artistService.unsubscribeUserFromArtist(artistName, userService.getLoggedInUser())
-    }
+    fun unsubscribeFromArtist(@PathVariable artistName: String)
+        = artistService.unsubscribeUserFromArtist(artistName, userService.getLoggedInUser())
 
 }

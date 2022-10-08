@@ -1,7 +1,7 @@
 package com.diogoandrebotas.musicnotifierapi.service
 
-import com.diogoandrebotas.musicnotifierapi.model.User
-import com.diogoandrebotas.musicnotifierapi.model.UserRequestBody
+import com.diogoandrebotas.musicnotifierapi.model.database.User
+import com.diogoandrebotas.musicnotifierapi.model.http.UserRequestBody
 import com.diogoandrebotas.musicnotifierapi.repository.UserRepository
 import com.diogoandrebotas.musicnotifierapi.security.CustomUserDetails
 import org.springframework.security.core.context.SecurityContextHolder

@@ -1,9 +1,12 @@
 package com.diogoandrebotas.musicnotifierapi.service
 
+import com.diogoandrebotas.musicnotifierapi.SPOTIFY_USER_AGENT
 import com.diogoandrebotas.musicnotifierapi.config.SpotifyProperties
-import com.diogoandrebotas.musicnotifierapi.model.SpotifyArtistAlbumsResponse
-import com.diogoandrebotas.musicnotifierapi.model.SpotifyArtistSearchResponse
-import com.diogoandrebotas.musicnotifierapi.model.SpotifyAuthResponse
+import com.diogoandrebotas.musicnotifierapi.model.database.Artist
+import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyAlbumResponse
+import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyArtistAlbumsResponse
+import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyArtistSearchResponse
+import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyAuthResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -14,15 +17,14 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.text.SimpleDateFormat
 import java.util.*
 
 @Service
-class SpotifyService {
-
-    @Autowired
-    lateinit var spotifyProperties: SpotifyProperties
+class SpotifyService(
+    val spotifyProperties: SpotifyProperties
+) {
 
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -43,7 +45,7 @@ class SpotifyService {
             ) {
                 headers {
                     append(HttpHeaders.Authorization, "Bearer $accessToken")
-                    append(HttpHeaders.UserAgent, "Music Notifier")
+                    append(HttpHeaders.UserAgent, SPOTIFY_USER_AGENT)
                 }
             }.body()
 
@@ -51,20 +53,44 @@ class SpotifyService {
         }
     }
 
-    fun getAlbumsFromArtist(artistId: String): SpotifyArtistAlbumsResponse {
-        val accessToken = getAccessToken()
-
+    fun getSinglesAndAlbumsFromArtistForToday(
+        artist: Artist,
+        accessToken: String = getAccessToken(),
+        albums: MutableList<SpotifyAlbumResponse> = mutableListOf(),
+        offset: Int = 0
+    ): MutableList<SpotifyAlbumResponse> {
         return runBlocking {
             val responseBody: SpotifyArtistAlbumsResponse = httpClient.get(
-                "${spotifyProperties.baseUrl}/artists/$artistId/albums"
+                "${spotifyProperties.baseUrl}/artists/${artist.id}/albums"
             ) {
                 headers {
                     append(HttpHeaders.Authorization, "Bearer $accessToken")
-                    append(HttpHeaders.UserAgent, "Music Notifier")
+                    append(HttpHeaders.UserAgent, SPOTIFY_USER_AGENT)
+                }
+                url {
+                    parameters.append("offset", offset.toString())
                 }
             }.body()
 
-            return@runBlocking responseBody
+            if (responseBody.items.isEmpty()) {
+                return@runBlocking albums
+            }
+            else {
+                val dateForToday = SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().time)
+
+                albums.addAll(responseBody.items.filter {
+                    (it.artists.map { artist -> artist.name }.contains(artist.name))
+                            && (it.albumType == "album" || it.albumType == "single")
+                            && (it.releaseDate == dateForToday)
+                })
+
+                return@runBlocking getSinglesAndAlbumsFromArtistForToday(
+                    artist,
+                    accessToken,
+                    albums,
+                    offset + 20
+                )
+            }
         }
     }
 
@@ -72,10 +98,7 @@ class SpotifyService {
         return runBlocking {
             val base64Credentials = Base64
                 .getEncoder()
-                .encodeToString(
-                    "${spotifyProperties.clientId}:${spotifyProperties.clientSecret}"
-                        .toByteArray()
-                )
+                .encodeToString("${spotifyProperties.clientId}:${spotifyProperties.clientSecret}".toByteArray())
 
             val responseBody: SpotifyAuthResponse = httpClient.submitForm(
                 url = spotifyProperties.tokenUrl,
@@ -85,12 +108,10 @@ class SpotifyService {
                 block = {
                     headers {
                         append(HttpHeaders.Authorization, "Basic $base64Credentials")
-                        append(HttpHeaders.UserAgent, "Music Notifier")
+                        append(HttpHeaders.UserAgent, SPOTIFY_USER_AGENT)
                     }
                 }
             ).body()
-
-            println(responseBody)
 
             return@runBlocking responseBody.accessToken
         }

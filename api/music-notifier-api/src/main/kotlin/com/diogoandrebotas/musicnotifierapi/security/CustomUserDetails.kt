@@ -1,6 +1,6 @@
 package com.diogoandrebotas.musicnotifierapi.security
 
-import com.diogoandrebotas.musicnotifierapi.model.User
+import com.diogoandrebotas.musicnotifierapi.model.database.User
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
