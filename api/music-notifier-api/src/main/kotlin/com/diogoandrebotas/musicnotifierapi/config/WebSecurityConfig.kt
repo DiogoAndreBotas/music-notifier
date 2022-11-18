@@ -17,7 +17,7 @@ class WebSecurityConfig(val userDetailsService: UserDetailsService) {
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        http
+        return http
             .csrf()
             .disable()
             .authorizeRequests()
@@ -29,8 +29,7 @@ class WebSecurityConfig(val userDetailsService: UserDetailsService) {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authenticationProvider(authenticationProvider())
-
-        return http.build()
+            .build()
     }
 
     @Bean

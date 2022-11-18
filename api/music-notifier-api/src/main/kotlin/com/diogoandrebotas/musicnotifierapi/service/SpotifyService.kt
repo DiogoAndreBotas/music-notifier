@@ -36,6 +36,11 @@ class SpotifyService(
         }
     }
 
+    private val maxOffset = 20
+
+    fun checkForNewArtistReleases(artists: List<Artist>)
+        = artists.map { Pair(it, getSinglesAndAlbumsFromArtistForToday(it)) }
+
     fun getArtistData(artistName: String): SpotifyArtistSearchResponse {
         val accessToken = getAccessToken()
 
@@ -53,7 +58,7 @@ class SpotifyService(
         }
     }
 
-    fun getSinglesAndAlbumsFromArtistForToday(
+    private fun getSinglesAndAlbumsFromArtistForToday(
         artist: Artist,
         accessToken: String = getAccessToken(),
         albums: MutableList<SpotifyAlbumResponse> = mutableListOf(),
@@ -76,19 +81,19 @@ class SpotifyService(
                 return@runBlocking albums
             }
             else {
-                val dateForToday = SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().time)
+                val today = SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().time)
 
                 albums.addAll(responseBody.items.filter {
-                    (it.artists.map { artist -> artist.name }.contains(artist.name))
+                    it.artists.map { artist -> artist.name }.contains(artist.name)
                             && (it.albumType == "album" || it.albumType == "single")
-                            && (it.releaseDate == dateForToday)
+                            && it.releaseDate == today
                 })
 
                 return@runBlocking getSinglesAndAlbumsFromArtistForToday(
                     artist,
                     accessToken,
                     albums,
-                    offset + 20
+                    offset + maxOffset
                 )
             }
         }
@@ -96,9 +101,11 @@ class SpotifyService(
 
     private fun getAccessToken(): String {
         return runBlocking {
+            val token = "${spotifyProperties.clientId}:${spotifyProperties.clientSecret}"
+
             val base64Credentials = Base64
                 .getEncoder()
-                .encodeToString("${spotifyProperties.clientId}:${spotifyProperties.clientSecret}".toByteArray())
+                .encodeToString(token.toByteArray())
 
             val responseBody: SpotifyAuthResponse = httpClient.submitForm(
                 url = spotifyProperties.tokenUrl,

@@ -11,6 +11,7 @@ class CustomUserDetailsService: UserDetailsService {
     @Autowired
     lateinit var userRepository: UserRepository
 
-    override fun loadUserByUsername(email: String) = CustomUserDetails(userRepository.findById(email).get())
+    override fun loadUserByUsername(email: String)
+        = CustomUserDetails(userRepository.findById(email).get())
 
 }

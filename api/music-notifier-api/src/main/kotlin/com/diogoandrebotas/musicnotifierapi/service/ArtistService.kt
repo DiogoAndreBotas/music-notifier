@@ -11,7 +11,7 @@ class ArtistService(
     val spotifyService: SpotifyService
 ) {
 
-    fun addOrUpdateArtist(artistName: String, user: User): Artist {
+    fun upsertArtist(artistName: String, user: User): Artist {
         val artist = artistRepository.findArtistByName(artistName)
 
         return if (artist.isEmpty) {
@@ -34,6 +34,6 @@ class ArtistService(
         artistRepository.insert(Artist(artist.get().id, artist.get().name, subscribedUsers))
     }
 
-    fun getAllArtists(): MutableList<Artist> = artistRepository.findAll()
+    private fun getAllArtists(): MutableList<Artist> = artistRepository.findAll()
 
 }

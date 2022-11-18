@@ -7,5 +7,7 @@ import java.util.Optional
 
 @Repository
 interface ArtistRepository : MongoRepository<Artist, String> {
+
     fun findArtistByName(name: String): Optional<Artist>
+
 }

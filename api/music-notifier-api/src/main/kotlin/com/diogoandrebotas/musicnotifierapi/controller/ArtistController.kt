@@ -12,7 +12,7 @@ class ArtistController(val artistService: ArtistService, val userService: UserSe
 
     @PostMapping("/subscribe/artist/{artistName}")
     fun subscribeToArtist(@PathVariable artistName: String)
-        = artistService.addOrUpdateArtist(artistName, userService.getLoggedInUser())
+        = artistService.upsertArtist(artistName, userService.getLoggedInUser())
 
     @DeleteMapping("/unsubscribe/artist/{artistName}")
     fun unsubscribeFromArtist(@PathVariable artistName: String)

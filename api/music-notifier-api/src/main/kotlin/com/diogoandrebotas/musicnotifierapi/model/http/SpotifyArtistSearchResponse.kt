@@ -1,11 +1,13 @@
 package com.diogoandrebotas.musicnotifierapi.model.http
 
-@kotlinx.serialization.Serializable
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class SpotifyArtistSearchResponse(
     val artists: SpotifyItemsResponse
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class SpotifyItemsResponse(
     val items: List<SpotifyArtistResponse>
 )
