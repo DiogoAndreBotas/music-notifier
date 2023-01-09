@@ -6,9 +6,6 @@ import org.springframework.session.data.mongo.config.annotation.web.http.EnableM
 
 @EnableMongoHttpSession
 class HttpSessionConfig {
-
     @Bean
-    fun mongoSessionConverter()
-        = JacksonMongoSessionConverter()
-
+    fun mongoSessionConverter() = JacksonMongoSessionConverter()
 }
