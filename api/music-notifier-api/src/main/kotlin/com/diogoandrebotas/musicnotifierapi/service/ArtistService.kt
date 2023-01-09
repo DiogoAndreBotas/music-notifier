@@ -2,38 +2,48 @@ package com.diogoandrebotas.musicnotifierapi.service
 
 import com.diogoandrebotas.musicnotifierapi.model.database.Artist
 import com.diogoandrebotas.musicnotifierapi.model.database.User
+import com.diogoandrebotas.musicnotifierapi.model.http.UserResponse
 import com.diogoandrebotas.musicnotifierapi.repository.ArtistRepository
+import com.diogoandrebotas.musicnotifierapi.repository.UserRepository
 import org.springframework.stereotype.Service
 
 @Service
 class ArtistService(
     val artistRepository: ArtistRepository,
+    val userRepository: UserRepository,
     val spotifyService: SpotifyService
 ) {
 
-    fun upsertArtist(artistName: String, user: User): Artist {
-        val artist = artistRepository.findArtistByName(artistName)
-
-        return if (artist.isEmpty) {
-            val spotifyArtist = spotifyService.getArtistData(artistName).artists.items.first()
-
-            artistRepository.insert(Artist(spotifyArtist.id, spotifyArtist.name, mutableListOf(user)))
-        } else {
-            val subscribedUsers = artist.get().subscribedUsers
-            subscribedUsers.add(user)
-
-            artistRepository.insert(Artist(artist.get().id, artist.get().name, subscribedUsers))
+    fun subscribeToArtist(artistName: String, user: User): UserResponse {
+        val artist = artistRepository.findArtistByName(artistName).orElseGet {
+            val spotifyArtist = spotifyService.getArtist(artistName)
+                .artists
+                .items
+                .first()
+            Artist(spotifyArtist.id, spotifyArtist.name, setOf(user))
         }
+
+        val updatedArtist = artistRepository.save(artist)
+
+        val updatedUser = User(user.email, user.password, user.subscribedArtists + updatedArtist)
+        userRepository.save(updatedUser)
+
+        return UserResponse(updatedUser.email, updatedUser.subscribedArtists)
     }
 
-    fun unsubscribeUserFromArtist(artistName: String, user: User) {
-        val artist = artistRepository.findArtistByName(artistName)
-        val subscribedUsers = artist.get().subscribedUsers
+    // TODO: exception handling in case artist isn't subscribed to by user
+    fun unsubscribeUserFromArtist(artistName: String, user: User): UserResponse {
+        val artist = artistRepository.findArtistByName(artistName).get()
 
-        subscribedUsers.remove(user)
-        artistRepository.insert(Artist(artist.get().id, artist.get().name, subscribedUsers))
+        val updatedArtist = Artist(artist.id, artist.name, artist.subscribedUsers - user)
+        artistRepository.insert(updatedArtist)
+
+        val updatedUser = User(user.email, user.password, user.subscribedArtists - updatedArtist)
+        userRepository.insert(updatedUser)
+
+        return UserResponse(updatedUser.email, updatedUser.subscribedArtists)
     }
 
-    private fun getAllArtists(): MutableList<Artist> = artistRepository.findAll()
+    fun getAllArtists(): MutableList<Artist> = artistRepository.findAll()
 
 }
