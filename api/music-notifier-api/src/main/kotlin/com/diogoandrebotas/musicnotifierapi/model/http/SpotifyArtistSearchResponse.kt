@@ -4,10 +4,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SpotifyArtistSearchResponse(
-    val artists: SpotifyItemsResponse
+    val artists: SpotifyArtistItemsResponse
 )
 
 @Serializable
-data class SpotifyItemsResponse(
+data class SpotifyArtistItemsResponse(
     val items: List<SpotifyArtistResponse>
 )
