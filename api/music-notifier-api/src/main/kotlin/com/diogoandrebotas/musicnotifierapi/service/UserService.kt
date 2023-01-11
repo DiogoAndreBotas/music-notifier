@@ -9,12 +9,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
 
 @Service
-class UserService(val userRepository: UserRepository, val passwordEncoder: BCryptPasswordEncoder) {
+class UserService(
+    val userRepository: UserRepository,
+    val passwordEncoder: BCryptPasswordEncoder
+) {
 
-    fun registerUser(userRequestBody: UserRequestBody)
-        = userRepository.insert(User(userRequestBody.email, passwordEncoder.encode(userRequestBody.password)))
+    fun registerUser(userRequestBody: UserRequestBody) = userRepository.insert(
+        User(userRequestBody.email, passwordEncoder.encode(userRequestBody.password), setOf())
+    )
 
     fun getLoggedInUser() = userRepository.findById(getCurrentUserEmail()).get()
+
+    fun getAllUsers(): List<User> = userRepository.findAll()
 
     private fun getCurrentUserEmail()
         = (SecurityContextHolder.getContext().authentication.principal as CustomUserDetails).username
