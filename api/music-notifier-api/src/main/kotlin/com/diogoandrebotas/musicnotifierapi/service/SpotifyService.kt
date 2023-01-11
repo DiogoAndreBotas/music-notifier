@@ -1,52 +1,39 @@
 package com.diogoandrebotas.musicnotifierapi.service
 
 import com.diogoandrebotas.musicnotifierapi.SPOTIFY_USER_AGENT
+import com.diogoandrebotas.musicnotifierapi.config.HttpClientConfig
 import com.diogoandrebotas.musicnotifierapi.config.SpotifyProperties
 import com.diogoandrebotas.musicnotifierapi.model.database.Artist
-import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyAlbumResponse
+import com.diogoandrebotas.musicnotifierapi.model.dto.ArtistRelease
+import com.diogoandrebotas.musicnotifierapi.model.dto.ReleaseType
 import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyArtistAlbumsResponse
 import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyArtistSearchResponse
-import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyAuthResponse
-import io.ktor.client.*
+import com.diogoandrebotas.musicnotifierapi.model.http.SpotifyReleaseResponse
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
-import java.text.SimpleDateFormat
-import java.util.*
 
 @Service
 class SpotifyService(
-    val spotifyProperties: SpotifyProperties
+    val spotifyProperties: SpotifyProperties,
+    val spotifyAuthService: SpotifyAuthService,
+    val httpClientConfig: HttpClientConfig
 ) {
 
-    private val httpClient = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            json(
-                Json {
-                   ignoreUnknownKeys = true
-                }
-            )
-        }
-    }
+    // TODO: Find a way to better cache access token
+    private val accessToken = spotifyAuthService.getAccessToken()
+    private val maxOffset = 50
+    private val limit = 50
 
-    private val maxOffset = 20
-
-    fun checkForNewArtistReleases(artists: List<Artist>)
-        = artists.map { Pair(it, getSinglesAndAlbumsFromArtistForToday(it)) }
-
-    fun getArtistData(artistName: String): SpotifyArtistSearchResponse {
-        val accessToken = getAccessToken()
+    fun getArtist(artistName: String): SpotifyArtistSearchResponse {
+        val artistNameEncoded = artistName.replace(" ", "%20")
+        val httpClient = httpClientConfig.getHttpClient()
 
         return runBlocking {
             val responseBody: SpotifyArtistSearchResponse = httpClient.get(
-                "${spotifyProperties.baseUrl}/search?type=artist&q=${artistName}&limit=1"
+                "${spotifyProperties.baseUrl}/search?type=artist&q=${artistNameEncoded}&limit=1"
             ) {
                 headers {
                     append(HttpHeaders.Authorization, "Bearer $accessToken")
@@ -54,73 +41,50 @@ class SpotifyService(
                 }
             }.body()
 
-            return@runBlocking responseBody
+            responseBody
         }
     }
 
-    private fun getSinglesAndAlbumsFromArtistForToday(
-        artist: Artist,
-        accessToken: String = getAccessToken(),
-        albums: MutableList<SpotifyAlbumResponse> = mutableListOf(),
-        offset: Int = 0
-    ): MutableList<SpotifyAlbumResponse> {
-        return runBlocking {
-            val responseBody: SpotifyArtistAlbumsResponse = httpClient.get(
-                "${spotifyProperties.baseUrl}/artists/${artist.id}/albums"
-            ) {
-                headers {
-                    append(HttpHeaders.Authorization, "Bearer $accessToken")
-                    append(HttpHeaders.UserAgent, SPOTIFY_USER_AGENT)
-                }
-                url {
-                    parameters.append("offset", offset.toString())
-                }
-            }.body()
+    fun getArtistReleases(artist: Artist, date: String): List<ArtistRelease> {
+        val httpClient = httpClientConfig.getHttpClient()
+        val releases = mutableListOf<SpotifyReleaseResponse>()
+        var offset = 0
 
-            if (responseBody.items.isEmpty()) {
-                return@runBlocking albums
-            }
-            else {
-                val today = SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().time)
-
-                albums.addAll(responseBody.items.filter {
-                    it.artists.map { artist -> artist.name }.contains(artist.name)
-                            && (it.albumType == "album" || it.albumType == "single")
-                            && it.releaseDate == today
-                })
-
-                return@runBlocking getSinglesAndAlbumsFromArtistForToday(
-                    artist,
-                    accessToken,
-                    albums,
-                    offset + maxOffset
-                )
-            }
-        }
-    }
-
-    private fun getAccessToken(): String {
-        return runBlocking {
-            val token = "${spotifyProperties.clientId}:${spotifyProperties.clientSecret}"
-
-            val base64Credentials = Base64
-                .getEncoder()
-                .encodeToString(token.toByteArray())
-
-            val responseBody: SpotifyAuthResponse = httpClient.submitForm(
-                url = spotifyProperties.tokenUrl,
-                formParameters = Parameters.build {
-                    append("grant_type", "client_credentials")
-                },
-                block = {
+        runBlocking {
+            do {
+                val responseBody: SpotifyArtistAlbumsResponse = httpClient.get(
+                    "${spotifyProperties.baseUrl}/artists/${artist.id}/albums"
+                ) {
                     headers {
-                        append(HttpHeaders.Authorization, "Basic $base64Credentials")
+                        append(HttpHeaders.Authorization, "Bearer $accessToken")
                         append(HttpHeaders.UserAgent, SPOTIFY_USER_AGENT)
                     }
-                }
-            ).body()
+                    url {
+                        parameters.append("type", "album")
+                        parameters.append("limit", limit.toString())
+                        parameters.append("offset", offset.toString())
+                    }
+                }.body()
 
-            return@runBlocking responseBody.accessToken
+                releases.addAll(
+                    responseBody.items.filter {
+                        it.artists.any { foundArtist -> foundArtist.name == artist.name } && it.releaseDate == date
+                    }
+                )
+
+                offset += maxOffset
+            } while (responseBody.items.isNotEmpty())
         }
+
+        return releases.map {
+            ArtistRelease(
+                it.name,
+                artist,
+                listOf(),
+                ReleaseType.valueOf(it.albumType.uppercase()),
+                it.releaseDate,
+                it.externalUrls.url
+            )
+        }.distinctBy { it.name }
     }
 }
