@@ -20,7 +20,7 @@ class ArtistService(
                 .artists
                 .items
                 .first()
-            Artist(spotifyArtist.id, spotifyArtist.name, setOf(user))
+            Artist(spotifyArtist.id, spotifyArtist.name)
         }
 
         val updatedArtist = artistRepository.save(artist)
@@ -35,11 +35,8 @@ class ArtistService(
     fun unsubscribeUserFromArtist(artistName: String, user: User): UserResponse {
         val artist = artistRepository.findArtistByName(artistName).get()
 
-        val updatedArtist = Artist(artist.id, artist.name, artist.subscribedUsers - user)
-        artistRepository.insert(updatedArtist)
-
-        val updatedUser = User(user.email, user.password, user.subscribedArtists - updatedArtist)
-        userRepository.insert(updatedUser)
+        val updatedUser = User(user.email, user.password, user.subscribedArtists - artist)
+        userRepository.save(updatedUser)
 
         return UserResponse(updatedUser.email, updatedUser.subscribedArtists)
     }

@@ -7,8 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document
 data class Artist(
     @Id
     val id: String,
-    val name: String,
-    val subscribedUsers: Set<User>
+    val name: String
 ) {
     override fun toString(): String {
         return "Artist(name='$name')"
