@@ -2,7 +2,6 @@ version: "3.9"
 
 services:
   web_api:
-    container_name: music_notifier_web_api
     build:
       context: .
       target: build
@@ -11,24 +10,12 @@ services:
     command: /web/gradlew bootRun
     ports:
       - "8080:8080"
-    depends_on:
-      - database
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS="client_secret.json"
-
-  tests:
-    container_name: music_notifier_tests
-    build:
-      context: .
-      target: BUILD_IMAGE
-    volumes:
-      - .:/test
-    command: /test/gradlew cleanTest test
+      SPRING_DATA_MONGODB_HOST: "database"
     depends_on:
       - database
 
   database:
     image: mongo:latest
-    container_name: music_notifier_db
     ports:
       - "27017:27017"
