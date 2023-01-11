@@ -183,3 +183,5 @@ gradle-app.setting
 # End of https://www.toptal.com/developers/gitignore/api/intellij,kotlin,java,gradle
 
 .DS_Store
+/.idea/music-notifier-api.iml
+/.idea/kotlinc.xml
