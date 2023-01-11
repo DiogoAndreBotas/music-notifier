@@ -6,20 +6,23 @@ import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.JavaMailSenderImpl
 
 @Configuration
-class EmailConfig {
+class EmailConfig (
+    val mailProperties: MailProperties
+) {
+
     @Bean
     fun getJavaMailSender(): JavaMailSender {
         val mailSender = JavaMailSenderImpl()
-        mailSender.host = "smtp.gmail.com"
-        mailSender.port = 587
-        mailSender.username = "music.notifier.service@gmail.com"
-        mailSender.password = "tsrndtspsbfnurpj"
+        mailSender.host = mailProperties.host
+        mailSender.port = mailProperties.port
+        mailSender.username = mailProperties.username
+        mailSender.password = mailProperties.password
 
         val properties = mailSender.javaMailProperties
-        properties["mail.transport.protocol"] = "smtp"
-        properties["mail.smtp.auth"] = "true"
-        properties["mail.smtp.starttls.enable"] = "true"
-        properties["mail.debug"] = "true"
+        properties["mail.transport.protocol"] = mailProperties.transportProtocol
+        properties["mail.smtp.auth"] = mailProperties.smtpAuth
+        properties["mail.smtp.starttls.enable"] = mailProperties.smtpStartTlsEnable
+        properties["mail.debug"] = mailProperties.debug
 
         return mailSender
     }
